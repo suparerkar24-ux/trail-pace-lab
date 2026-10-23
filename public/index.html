@@ -1600,10 +1600,11 @@ const CARD={light:{bg:'#F4F6F3',panel:'#FFFFFF',ink:'#17221B',muted:'#5B6A60',li
             dark:{bg:'#0F1612',panel:'#18221D',ink:'#E8EFEA',muted:'#98A89E',line:'#2B3932',accent:'#F07A3E',moss:'#6FB08A',ok:'#5CC285',bad:'#F2725F',warn:'#E3B04B',g:['#5E95BF','#3F6680','#4F7A55','#B38A2E','#C9682A','#C2462A']}};
 const gIdx=g=>g<-0.10?0:g<-0.03?1:g<=0.03?2:g<=0.10?3:g<=0.20?4:5;
 function fitText(ctx,t,maxW){if(ctx.measureText(t).width<=maxW)return t;while(t.length>1&&ctx.measureText(t+'…').width>maxW)t=t.slice(0,-1);return t+'…';}
+let CARD_CV=null,cardUrl=null;
 async function drawCard(){
   if(!M)return null;const C=CARD[cardTheme];const W=1080,P=64,HEAD=806,FOOT=110,RMIN=150,nRows=sortedAids().length+2;const H=Math.max(1920,Math.ceil(HEAD+nRows*RMIN+FOOT));
   try{await Promise.all(['700 40px "Barlow Condensed"','600 40px "Barlow Condensed"','500 30px "Noto Sans Thai"','600 30px "Noto Sans Thai"','700 30px "Noto Sans Thai"'].map(f=>document.fonts.load(f,'กขAa0')));}catch(e){}
-  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');{const of=x.fillText.bind(x),om=x.measureText.bind(x);x.fillText=(s,a,b,c)=>c===undefined?of(tr(s),a,b):of(tr(s),a,b,c);x.measureText=s=>om(tr(s));}
+  const cv=CARD_CV||(CARD_CV=document.createElement('canvas'));cv.width=W;cv.height=H;const x=cv.getContext('2d');if(!x)return null;x.setTransform(1,0,0,1,0,0);x.textAlign='left';x.setLineDash([]);if(!cv.__wrapped){cv.__wrapped=1;const of=x.fillText.bind(x),om=x.measureText.bind(x);x.fillText=(s,a,b,c)=>c===undefined?of(tr(s),a,b):of(tr(s),a,b,c);x.measureText=s=>om(tr(s));}
   const DSP='"Barlow Condensed","Noto Sans Thai",sans-serif',BODY='"Noto Sans Thai",sans-serif',MONO='"Barlow Condensed","Noto Sans Thai",sans-serif';
   x.fillStyle=C.bg;x.fillRect(0,0,W,H);
   // header
@@ -1657,7 +1658,7 @@ async function drawCard(){
   x.fillText(fitText(x,parts.join(' · '),W-2*P),P,H-70);
   return cv;
 }
-async function refreshCard(){if(cardBusy)return;cardBusy=true;try{const cv=await drawCard();const img=$('#cardImg');if(cv){img.src=cv.toDataURL('image/png');img.hidden=false;}else img.hidden=true;}finally{cardBusy=false;}
+async function refreshCard(){if(cardBusy)return;cardBusy=true;try{const cv=await drawCard();const img=$('#cardImg');if(cv){const blob=await new Promise(r=>cv.toBlob(r,'image/png'));if(blob&&blob.size>1000){const u=URL.createObjectURL(blob);img.onload=()=>{if(cardUrl&&cardUrl!==u)URL.revokeObjectURL(cardUrl);cardUrl=u;};img.src=u;img.hidden=false;}}else img.hidden=true;}catch(e){console.warn('card',e);}finally{cardBusy=false;}
   document.querySelectorAll('#segCard button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===cardTheme));}
 function scheduleCard(){clearTimeout(cardTimer);cardTimer=setTimeout(refreshCard,350);}
 const directDl={save:async({filename,data})=>{const blob=data instanceof Blob?data:new Blob([data]);const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return{status:'saved'};}};
