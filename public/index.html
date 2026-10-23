@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{color-scheme:dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-family:system-ui,-apple-system,sans-serif;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
-<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Trail Pace"><meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="description" content="วางแผนวิ่งเทรลจากไฟล์ GPX: เวลาถึงแต่ละ CP ตามความชัน ความล้า COT น้ำ คาร์บ โซเดียม พยากรณ์อากาศ และโปรแกรมซ้อม"><meta name="theme-color" content="#000000"><meta property="og:title" content="Trail Pace Lab"><meta property="og:description" content="วางแผนเวลาแข่งเทรลจาก GPX ตามความชันจริง">
-<title>Trail Pace Lab</title>
+<link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Trail Planner"><meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="description" content="วางแผนวิ่งเทรลจากไฟล์ GPX: เวลาถึงแต่ละ CP ตามความชัน ความล้า COT น้ำ คาร์บ โซเดียม พยากรณ์อากาศ และโปรแกรมซ้อม"><meta name="theme-color" content="#000000"><meta property="og:title" content="Trail Planner"><meta property="og:description" content="วางแผนเวลาแข่งเทรลจาก GPX ตามความชันจริง">
+<title>Trail Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,700;1,800&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap">
@@ -321,7 +321,11 @@ table.cmp td.d.fast{color:var(--ok)}table.cmp td.d.slow{color:var(--bad)}
 .tgzone{font:600 13px var(--f-body);display:flex;align-items:center;gap:8px;color:var(--ink)}
 .tgzone i{width:10px;height:10px;border-radius:50%;flex:none}
 .tgzone span{color:var(--muted);font-weight:400}
-.tgslider{position:relative;height:36px}
+.tgslider{position:relative;height:36px;margin-top:30px;touch-action:none}
+.tgbubble{position:absolute;bottom:calc(100% + 2px);transform:translateX(-50%);background:var(--ink);color:#000;font:700 14px/1.1 var(--f-display);padding:4px 9px;border-radius:8px;white-space:nowrap;pointer-events:none}
+.tgbubble small{font:600 11px var(--f-body);opacity:.7;margin-left:4px}
+.tgbubble::after{content:"";position:absolute;left:50%;top:100%;margin-left:-5px;border:5px solid transparent;border-top-color:var(--ink)}
+@media (max-width:420px){.tgstats b{font-size:22px}.tgstats small{font-size:10.5px}}
 .tgtrack{position:absolute;left:0;right:0;top:50%;height:8px;margin-top:-4px;border-radius:2px;overflow:hidden}
 .tghatch{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(135deg,rgba(0,0,0,.38) 0 4px,transparent 4px 9px)}
 .tgtick{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#000}
@@ -535,7 +539,7 @@ td{font-family:var(--f-display);font-size:15px;border-color:var(--line)}
   <div class="wrap headgrid">
     <div class="headtxt">
       <div class="topbar"><p class="eyebrow">Trail pace calculator · GPX</p><div class="langsw" role="group" aria-label="Language"><button type="button" data-lang="th">TH</button><button type="button" data-lang="en">EN</button></div><button class="profbtn planbtn" id="planBtn" type="button"><span class="pbk">แผน</span><span id="planBtnName">แผนใหม่</span><span class="caret" aria-hidden="true">▾</span></button><button class="profbtn" id="profBtn" type="button"><span class="ava" id="profAva">?</span><span id="profName">ตั้งค่าโปรไฟล์</span></button></div>
-      <h1 class="brand"><span class="word">TRAIL<em>PACE LAB</em></span></h1>
+      <h1 class="brand"><span class="word">TRAIL<em>PLANNER</em></span></h1>
       <p class="lede">ใส่ผลเทสวิ่งถนน แล้วอัปโหลดไฟล์ GPX ของสนาม ได้เวลาคาดการณ์ทุกช่วงตามความชันจริง เวลาถึงแต่ละ CP เทียบ COT และน้ำกับคาร์บที่ต้องพกระหว่างจุด</p>
     </div>
     <button class="countdown" id="countdown" type="button" hidden></button>
@@ -750,6 +754,7 @@ td{font-family:var(--f-display);font-size:15px;border-color:var(--line)}
         <div class="tgslider" id="tgSl">
           <div class="tgtrack" id="tgTrack"><div class="tghatch" id="tgHatch"></div><i class="tgtick" id="tgTick"></i></div>
           <input type="range" id="tgRange" min="0" max="1000" step="1" aria-label="เลื่อนตั้งเวลาเป้าหมาย">
+          <div class="tgbubble" id="tgBubble" aria-hidden="true"></div>
         </div>
         <div class="tgends"><span>เบา</span><span>เต็มที่</span></div>
         <div class="tgstats">
@@ -1478,7 +1483,7 @@ async function drawCard(){
   x.fillStyle=C.bg;x.fillRect(0,0,W,H);
   // header
   let y=120;x.textBaseline='alphabetic';
-  x.fillStyle=C.accent;x.font=`600 28px ${MONO}`;x.fillText('TRAIL PACE LAB · แผนเวลา CP',P,y);
+  x.fillStyle=C.accent;x.font=`600 28px ${MONO}`;x.fillText('TRAIL PLANNER · แผนเวลา CP',P,y);
   y+=80;x.fillStyle=C.ink;x.font=`700 72px ${DSP}`;x.fillText(fitText(x,($('#planName').value.trim()||route.name),W-2*P),P,y);
   y+=56;x.fillStyle=C.muted;x.font=`500 32px ${BODY}`;x.fillText(fitText(x,`${raceDate&&parseDay(raceDate)?thDate(parseDay(raceDate))+' · ':''}${km1(route.L)} กม. · +${fmtInt(route.gain)} / −${fmtInt(route.loss)} ม. · ปล่อยตัว ${clock(startMin,0)}`,W-2*P),P,y);
   // finish block
@@ -1551,7 +1556,7 @@ function buildGpx(){
   const at=d=>{const f=Math.max(0,Math.min(m-1,d/L*(m-1)));const i=Math.min(m-2,Math.floor(f)),t=f-i;return[route.lat[i]+(route.lat[i+1]-route.lat[i])*t,route.lon[i]+(route.lon[i+1]-route.lon[i])*t];};
   const wpt=(d,nm,desc,type)=>{const[la,lo]=at(d);return`  <wpt lat="${la.toFixed(6)}" lon="${lo.toFixed(6)}"><ele>${eAt(d).toFixed(1)}</ele><name>${xesc(nm)}</name><desc>${xesc(desc)}</desc><type>${type}</type></wpt>\n`;};
   const info=(el,cot)=>M?`ถึง ${durStr(el)} ชม. (${clock(startMin,el).slice(0,5)})${isFinite(cot)?` · COT ${clock(startMin,cot).slice(0,5)}`:''}`:'';
-  let g=`<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Trail Pace Lab" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${xesc(name)}</name><desc>${xesc(`${km1(L)} กม. +${fmtInt(route.gain)} ม.`)}</desc></metadata>\n`;
+  let g=`<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Trail Planner" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${xesc(name)}</name><desc>${xesc(`${km1(L)} กม. +${fmtInt(route.gain)} ม.`)}</desc></metadata>\n`;
   g+=wpt(0,'Start',`ปล่อยตัว ${clock(startMin,0).slice(0,5)}`,'start');
   sa.forEach((a,j)=>{g+=wpt(a.m,`${a.name} km${(a.m/1000).toFixed(1)}`,info(M?tAt(a.m)+j*stop:NaN,cm[a.i]),'aid station');});
   g+=wpt(L,'Finish',M?info(elapsed(L),cm.F):'เส้นชัย','finish');
@@ -1772,7 +1777,7 @@ function renderStv(){const isRun=a=>/run|hike|walk/i.test(a.sport_type||'');cons
   $('#stvMore').hidden=!stvCursor;}
 function streamsToGpx(a,st){
   const loc=st.location||[],alt=st.altitude||[],tm=st.time||[];if(loc.length<2)throw new Error('กิจกรรมนี้ไม่มีพิกัด GPS เช่น วิ่งบนลู่ เลือกกิจกรรมอื่น');
-  const t0=a.start_local?Date.parse(a.start_local+'Z'):Date.UTC(2026,0,1);let g=`<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="Strava via Trail Pace Lab" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${xesc(a.name||'Strava')}</name><trkseg>`;
+  const t0=a.start_local?Date.parse(a.start_local+'Z'):Date.UTC(2026,0,1);let g=`<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="Strava via Trail Planner" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${xesc(a.name||'Strava')}</name><trkseg>`;
   for(let i=0;i<loc.length;i++){const p=loc[i];if(!p||!isFinite(p[0]))continue;g+=`<trkpt lat="${p[0]}" lon="${p[1]}">${isFinite(alt[i])?`<ele>${alt[i]}</ele>`:''}${isFinite(tm[i])?`<time>${new Date(t0+tm[i]*1000).toISOString()}</time>`:''}</trkpt>`;}
   return g+'</trkseg></trk></gpx>';}
 async function pickStv(id){
@@ -1821,6 +1826,8 @@ function renderTgSlider(){
   $('#tgHatch').style.left=xs.o+'%';$('#tgTick').style.left=xs.f+'%';
   const r=$('#tgRange');if(!tgDragging&&isFinite(t))r.value=Math.round(Math.max(0,Math.min(100,X(t)))*10);
   const pc=isFinite(t)?(t/pot-1)*100:0;const z=zoneOf(pc);$('#tgSl').style.setProperty('--thumb',ZC[z[0]]);
+  {const bb=$('#tgBubble');if(isFinite(t)){const xr=Math.max(0,Math.min(100,X(t)));const tw=$('#tgSl').clientWidth||300;const px=Math.max(46,Math.min(tw-46,7+xr/100*(tw-14)));
+    bb.style.left=px+'px';bb.innerHTML=`${Math.floor(t/60)}:${pad2(Math.round(t%60))}<small>${paceQ(t/(route.L/1000))}/กม.</small>`;bb.hidden=false;}else bb.hidden=true;}
   $('#tgZone').innerHTML=isFinite(t)?`<i style="background:${ZC[z[0]]}"></i>${z[1]} <span>· ${pc<0?'เร็วกว่า':'ช้ากว่า'}ศักยภาพ ${Math.abs(pc).toFixed(0)}% · ${z[2]}</span>`:'';
 }
 function onTgInput(){if(!tgRange)return;const x=+$('#tgRange').value/1000;let t=tgRange.slow-x*(tgRange.slow-tgRange.fast);t=Math.round(t/(t>360?5:1))*(t>360?5:1);
@@ -2083,6 +2090,10 @@ $('#sbSave').addEventListener('click',async()=>{if(saving)return;
 $('#actRes').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const rd=new FileReader();rd.onload=()=>{const el=$('#actResErr');try{actual=parseActualRun(rd.result,f.name);el.hidden=true;renderActual();}catch(err){el.textContent=err.message;el.hidden=false;}};rd.readAsText(f);});
 document.addEventListener('click',e=>{if(e.target.closest('[data-gotarget]')){const b=document.querySelector('#segMode [data-v=target]');b.click();b.scrollIntoView({block:'center',behavior:'smooth'});}});
 $('#tgRange').addEventListener('input',onTgInput);
+{const sl=$('#tgSl');let drag=false;const setFromX=ev=>{const r=sl.getBoundingClientRect();const f=Math.max(0,Math.min(1,(ev.clientX-r.left-7)/(r.width-14)));$('#tgRange').value=Math.round(f*1000);onTgInput();};
+  sl.addEventListener('pointerdown',ev=>{if(ev.pointerType==='mouse')return;drag=true;try{sl.setPointerCapture(ev.pointerId);}catch(e){}setFromX(ev);ev.preventDefault();});
+  sl.addEventListener('pointermove',ev=>{if(drag){setFromX(ev);ev.preventDefault();}});
+  ['pointerup','pointercancel'].forEach(t=>sl.addEventListener(t,()=>{if(drag){drag=false;tgDragging=false;renderTgSlider();}}));}
 ['change','pointerup','touchend','blur'].forEach(ev=>$('#tgRange').addEventListener(ev,()=>{tgDragging=false;renderTgSlider();}));
 $('#tgBig').addEventListener('click',()=>{const w=$('#tgPickWrap');w.hidden=!w.hidden;$('#tgBig').setAttribute('aria-expanded',!w.hidden);if(!w.hidden)renderPickers();});
 $('#tgReset').addEventListener('click',()=>{const p=potFinish();if(!isFinite(p))return;targetFinish=durStr(Math.round(p/5)*5);renderPickers();update();});
