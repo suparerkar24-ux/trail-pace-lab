@@ -1601,8 +1601,13 @@ const CARD={light:{bg:'#F4F6F3',panel:'#FFFFFF',ink:'#17221B',muted:'#5B6A60',li
 const gIdx=g=>g<-0.10?0:g<-0.03?1:g<=0.03?2:g<=0.10?3:g<=0.20?4:5;
 function fitText(ctx,t,maxW){if(ctx.measureText(t).width<=maxW)return t;while(t.length>1&&ctx.measureText(t+'…').width>maxW)t=t.slice(0,-1);return t+'…';}
 let CARD_CV=null,cardUrl=null;
+function cardIcon(x,k,cx,cy,C){x.save();x.translate(cx,cy);
+  if(k==='water'){x.fillStyle='#4FB3FF';x.beginPath();x.moveTo(0,-13);x.bezierCurveTo(6,-4,11,2,11,6);x.arc(0,6,11,0,Math.PI);x.bezierCurveTo(-11,2,-6,-4,0,-13);x.fill();}
+  else if(k==='carb'){x.fillStyle='#F5C542';x.beginPath();x.moveTo(3,-14);x.lineTo(-9,2);x.lineTo(-1,2);x.lineTo(-4,14);x.lineTo(9,-3);x.lineTo(1,-3);x.closePath();x.fill();}
+  else{x.fillStyle='#E8EFEA';x.beginPath();for(let a=0;a<6;a++){const t=Math.PI/3*a+Math.PI/6;x[a?'lineTo':'moveTo'](Math.cos(t)*12,Math.sin(t)*12);}x.closePath();x.fill();x.fillStyle=C.bg;x.font=`700 12px sans-serif`;x.textAlign='center';x.fillText('Na',0,4);}
+  x.restore();}
 async function drawCard(){
-  if(!M)return null;const C=CARD[cardTheme];const W=1080,P=64,HEAD=806,FOOT=110,RMIN=150,nRows=sortedAids().length+2;const H=Math.max(1920,Math.ceil(HEAD+nRows*RMIN+FOOT));
+  if(!M)return null;const C=CARD[cardTheme];const W=1080,P=64,HEAD=806,FOOT=110,RMIN=184,nRows=sortedAids().length+2;const H=Math.max(1920,Math.ceil(HEAD+110+(nRows-1)*RMIN+FOOT));
   try{await Promise.all(['700 40px "Barlow Condensed"','600 40px "Barlow Condensed"','500 30px "Noto Sans Thai"','600 30px "Noto Sans Thai"','700 30px "Noto Sans Thai"'].map(f=>document.fonts.load(f,'กขAa0')));}catch(e){}
   const cv=CARD_CV||(CARD_CV=document.createElement('canvas'));cv.width=W;cv.height=H;const x=cv.getContext('2d');if(!x)return null;x.setTransform(1,0,0,1,0,0);x.textAlign='left';x.setLineDash([]);if(!cv.__wrapped){cv.__wrapped=1;const of=x.fillText.bind(x),om=x.measureText.bind(x);x.fillText=(s,a,b,c)=>c===undefined?of(tr(s),a,b):of(tr(s),a,b,c);x.measureText=s=>om(tr(s));}
   const DSP='"Barlow Condensed","Noto Sans Thai",sans-serif',BODY='"Noto Sans Thai",sans-serif',MONO='"Barlow Condensed","Noto Sans Thai",sans-serif';
@@ -1636,22 +1641,24 @@ async function drawCard(){
   const stop=+$('#stop').value||0;const rows=[{n:'S',name:'ปล่อยตัว',m:0,el:0,cot:NaN}];
   sa.forEach((a,j)=>rows.push({n:String(j+1),name:a.name,m:a.m,el:tAt(a.m)+j*stop,cot:cm[a.i],prev:j?sa[j-1].m:0}));
   rows.push({n:'F',name:'เส้นชัย',m:L,el:total,cot:cm.F,prev:sa.length?sa[sa.length-1].m:0});
-  const foot=FOOT,avail=H-y-foot,rh=Math.max(RMIN,Math.min(190,avail/rows.length)),big=rh>=130,sc=Math.min(1,rh/150);
+  const foot=FOOT,avail=H-y-foot,rh=Math.max(RMIN,Math.min(200,(avail-110)/Math.max(1,rows.length-1))),big=rh>=130,sc=Math.min(1,rh/150);
   const cx={no:P+28,name:P+78,km:W-P-470,el:W-P-300,clk:W-P};
   x.fillStyle=C.muted;x.font=`600 28px ${BODY}`;x.fillText('จุด',cx.name,y-14);x.textAlign='right';x.fillText('กม.',cx.km,y-14);x.fillText('ถึง (ชม.)',cx.el,y-14);x.fillText('เวลานาฬิกา',cx.clk,y-14);x.textAlign='left';
-  rows.forEach((r,i)=>{const ry=y+i*rh;x.strokeStyle=C.line;x.lineWidth=2;x.beginPath();x.moveTo(P,ry);x.lineTo(W-P,ry);x.stroke();
-    const mid=ry+(big?rh*0.42:rh*0.62);const isCP=r.n!=='S'&&r.n!=='F';
+  const s0=big?110:rh;rows.forEach((r,i)=>{const ry=y+(i?s0+(i-1)*rh:0);x.strokeStyle=C.line;x.lineWidth=2;x.beginPath();x.moveTo(P,ry);x.lineTo(W-P,ry);x.stroke();
+    const mid=ry+(i===0&&big?70:big?Math.min(rh*0.36,72):rh*0.62);const isCP=r.n!=='S'&&r.n!=='F';
     x.fillStyle=isCP?C.accent:r.n==='S'?C.moss:C.ink;x.beginPath();x.arc(cx.no,mid-12*sc,22*sc+4,0,7);x.fill();
     x.fillStyle=C.bg;x.font=`600 ${Math.round(24*sc+4)}px ${MONO}`;x.textAlign='center';x.fillText(r.n,cx.no,mid-12*sc+9*sc);x.textAlign='left';
     x.fillStyle=C.ink;x.font=`600 ${Math.round(48*sc)}px ${BODY}`;x.fillText(fitText(x,r.name,cx.km-cx.name-150),cx.name,mid);
     x.textAlign='right';x.font=`700 ${Math.round(54*sc)}px ${MONO}`;x.fillText((r.m/1000).toFixed(1),cx.km,mid);
     x.fillText(durStr(r.el),cx.el,mid);x.fillStyle=r.n==='S'?C.moss:C.accent;x.font=`700 ${Math.round(70*sc)}px ${MONO}`;x.fillText(clock(startMin,r.el).slice(0,5),cx.clk,mid);x.textAlign='left';
-    if(big&&r.n!=='S'){const hours=(tAt(r.m)-tAt(r.prev))/60;const[g]=climb(r.prev,r.m);x.fillStyle=C.muted;x.font=`500 30px ${BODY}`;
-      const nn=nutr(r.prev,r.m);x.fillText(fitText(x,`${nn.sun>0.6?'☀ ':nn.sun>0.02?'⛅ ':'☾ '}ช่วงนี้ ${km1(r.m-r.prev)} กม. +${fmtInt(g)} ม. · ${hm2(hours*60)} · น้ำ ${fmtInt(r50(nn.water))} มล. · คาร์บ ${fmtInt(Math.round(nn.c0))}–${fmtInt(Math.round(nn.c1))} ก. · Na ${fmtInt(r50(nn.sod))} มก.`,W-P-300-cx.name),cx.name,mid+44);}
+    if(big&&r.n!=='S'){const hours=(tAt(r.m)-tAt(r.prev))/60;const[g]=climb(r.prev,r.m);const nn=nutr(r.prev,r.m);
+      x.fillStyle=C.muted;x.font=`500 28px ${BODY}`;x.fillText(fitText(x,`${nn.sun>0.6?'☀':nn.sun>0.02?'⛅':'☾'} ${km1(r.m-r.prev)} กม. · +${fmtInt(g)} ม. · ${hm2(hours*60)}`,W-P-300-cx.name),cx.name,mid+42);
+      let ix=cx.name;const iy=mid+86;const item=(kind,t)=>{cardIcon(x,kind,ix+13,iy-11,C);x.fillStyle=C.ink;x.font=`600 30px ${MONO}`;x.fillText(t,ix+32,iy);ix+=32+x.measureText(t).width+26;};
+      item('water',`${fmtInt(r50(nn.water))} มล.`);item('carb',`${fmtInt(Math.round(nn.c0))}–${fmtInt(Math.round(nn.c1))} ก.`);item('salt',`${fmtInt(r50(nn.sod))} มก.`);}
     if(isFinite(r.cot)){const mg=r.cot-r.el;x.textAlign='right';x.font=`700 ${Math.round(32*sc+2)}px ${MONO}`;x.fillStyle=mg<0?C.bad:mg<20?C.warn:C.ok;
       x.fillText(`COT ${clock(startMin,r.cot).slice(0,5)} ${mg<0?'เกิน':'+'}${durStr(Math.abs(mg))}`,cx.clk,mid+(big?44:34*sc));x.textAlign='left';}
   });
-  x.strokeStyle=C.line;x.beginPath();x.moveTo(P,y+rows.length*rh);x.lineTo(W-P,y+rows.length*rh);x.stroke();
+  x.strokeStyle=C.line;x.beginPath();x.moveTo(P,y+s0+(rows.length-1)*rh);x.lineTo(W-P,y+s0+(rows.length-1)*rh);x.stroke();
   // footer
   x.fillStyle=C.muted;x.font=`500 24px ${BODY}`;
   const parts=[isFinite(M.vdot)?`VDOT ${M.vdot.toFixed(1)}`:null,`ล้าช่วงท้าย +${Math.round(M.F*100)}%${M.fromFile?' (จากไฟล์จริง)':''}`,`พัก CP ${stop} นาที`,M.target?'ตั้งเป้าเอง':'คาดจากผลเทส'].filter(Boolean);
