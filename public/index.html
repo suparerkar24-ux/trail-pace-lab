@@ -494,6 +494,11 @@ select:focus,input:focus{border-color:var(--moss)}
 .countdown .cn{font:700 clamp(56px,9vw,80px)/1 var(--f-display);color:var(--heat);transition:color .3s}
 .countdown.today .cn{color:var(--heat)}
 .countdown .ck,.countdown .cd{font-family:var(--f-body);opacity:1;color:var(--muted);letter-spacing:0;text-transform:none}
+.countdown{background:linear-gradient(135deg,var(--heat) 0%,color-mix(in srgb,var(--heat) 70%,#000) 100%);color:#0B0B0C;box-shadow:0 10px 34px color-mix(in srgb,var(--heat) 45%,transparent),0 0 0 1px color-mix(in srgb,var(--heat) 80%,#fff) inset}
+.countdown .cn,.countdown.today .cn{color:#0B0B0C}.countdown .cn small{color:#0B0B0C;opacity:.8}
+.countdown .cr{color:#0B0B0C;font-weight:700}
+.countdown .ck,.countdown .cd{color:rgba(11,11,12,.72);font-weight:600}
+.countdown:hover{outline-color:#fff}
 .readout{background:var(--sunk);border-radius:12px}
 .readout b{font:700 30px/1 var(--f-display);color:var(--moss)}
 /* plan strip & cards */
