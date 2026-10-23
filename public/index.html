@@ -2194,9 +2194,10 @@ let SAMPLES=[];
 (list=>{SAMPLES=Array.isArray(list)?list:[];if(!SAMPLES.length)return;
   $('#sampleChips').innerHTML=SAMPLES.map((x,i)=>`<button type="button" class="scard" data-smp="${i}"><b>${esc(x.name)}</b>${x.badge||x.raceDate?`<small class="sdate">${x.badge?`<span class="sbadge">${esc(x.badge)}</span>`:''}${x.raceDate?thDate(parseDay(x.raceDate),{day:'numeric',month:'short',year:'numeric'}):''}</small>`:''}<small>${(x.route.L/1000).toFixed(1)} กม. · +${fmtInt(x.gain||0)} ม.</small><small>${x.aids&&x.aids.length?x.aids.length+' CP':'ไม่มี CP'}</small></button>`).join('');$('#samples').hidden=false;$('#useSample').hidden=true;markSample();})((()=>{try{return JSON.parse($('#samplesData').textContent);}catch(e){return[];}})());
 function markSample(){document.querySelectorAll('#sampleChips [data-smp]').forEach(b=>{const x=SAMPLES[+b.dataset.smp];b.setAttribute('aria-pressed',!!x&&!currentPlanId&&route.name===x.route.name);});}
-$('#sampleChips').addEventListener('click',e=>{const b=e.target.closest('[data-smp]');if(!b)return;const x=SAMPLES[+b.dataset.smp];if(!x)return;
+$('#sampleChips').addEventListener('click',e=>{const b=e.target.closest('[data-smp]');if(b)loadSample(+b.dataset.smp);});
+function loadSample(i,silent){const x=SAMPLES[i];if(!x)return false;
   currentPlanId=null;$('#planName').value=x.name;raceDate=x.raceDate||'';$('#raceDate').value=raceDate;actual=null;weather=null;calib=null;targetFinish='';finishCot=x.finishCot||'';$('#start').value=x.start||'05:00';renderPickers();
-  const r=routeFromSaved(x.route);r.gainOff=x.route.gainOff||'';r.aids=JSON.parse(JSON.stringify(x.aids||[]));setRoute(r,{keepCot:true});baseSig=null;renderPlans();renderBar();markSample();toast(`เปิดสนามตัวอย่าง ${x.name} แล้ว กดบันทึกถ้าอยากเก็บไว้`);});
+  const r=routeFromSaved(x.route);r.gainOff=x.route.gainOff||'';r.aids=JSON.parse(JSON.stringify(x.aids||[]));setRoute(r,{keepCot:true});baseSig=null;renderPlans();renderBar();markSample();if(!silent)toast(`เปิดสนามตัวอย่าง ${x.name} แล้ว กดบันทึกถ้าอยากเก็บไว้`);return true;}
 $('#useSample').addEventListener('click',()=>{currentPlanId=null;$('#planName').value='';raceDate='';$('#raceDate').value='';actual=null;weather=null;setRoute(sampleRoute());markClean();});
 $('#seg').addEventListener('click',e=>{e.preventDefault();const b=e.target.closest('button');if(!b)return;interval=+b.dataset.v;renderSplits();});
 $('#segFlat').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;flatDays=+b.dataset.v;renderTraining();savePrefs();});
@@ -2307,7 +2308,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-prof]'))openPro
 document.querySelector('.langsw').addEventListener('click',e=>{const b=e.target.closest('[data-lang]');if(!b||b.dataset.lang===LANG)return;LANG=b.dataset.lang;try{localStorage.setItem('trailpacelab.lang',LANG);}catch(er){}
   applyLang();update();renderPlans();renderAidEditor();renderAidOut();scheduleCard();});
 applyLang();
-loadPrefs();renderPickers();renderProfBtn();setTab(location.hash.slice(1));setRoute(route);initStore().then(loadProfile).then(()=>{markClean();renderBar();});initStrava();
+loadPrefs();renderPickers();renderProfBtn();setTab(location.hash.slice(1));{const pi=SAMPLES.findIndex(x=>/ภูกระดึง/.test(x.name));if(!(pi>=0&&loadSample(pi,true)))setRoute(route);}initStore().then(loadProfile).then(()=>{markClean();renderBar();});initStrava();
 })();
 </script>
 
