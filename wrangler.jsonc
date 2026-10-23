@@ -1,0 +1,7 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // static site: everything in ./public is served as-is
+  "name": "summer-math-f982",
+  "compatibility_date": "2025-09-01",
+  "assets": { "directory": "./public", "not_found_handling": "single-page-application" }
+}
