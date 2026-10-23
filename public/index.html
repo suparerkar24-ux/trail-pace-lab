@@ -220,7 +220,7 @@ body.mapfs{overflow:hidden}
 .maplinks{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;margin:-6px 0 12px}
 .maplinks a{color:var(--accent)}
 .cardwrap{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
-#cardImg{width:min(100%,360px);height:auto;border-radius:14px;border:1px solid var(--line);background:var(--sunk);display:block}
+#cardImg,.cardcv{width:min(100%,360px)!important;height:auto;border-radius:14px;border:1px solid var(--line);background:var(--sunk);display:block}
 .cardacts{display:grid;gap:8px;min-width:0;flex:1 1 200px;align-content:start}
 .calres{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13.5px;display:grid;gap:4px}
 .calres b{font-family:var(--f-mono);font-weight:600}
@@ -1665,7 +1665,7 @@ async function drawCard(){
   x.fillText(fitText(x,parts.join(' · '),W-2*P),P,H-70);
   return cv;
 }
-async function refreshCard(){if(cardBusy)return;cardBusy=true;try{const cv=await drawCard();const img=$('#cardImg');if(cv){const blob=await new Promise(r=>cv.toBlob(r,'image/png'));if(blob&&blob.size>1000){const u=URL.createObjectURL(blob);img.onload=()=>{if(cardUrl&&cardUrl!==u)URL.revokeObjectURL(cardUrl);cardUrl=u;};img.src=u;img.hidden=false;}}else img.hidden=true;}catch(e){console.warn('card',e);}finally{cardBusy=false;}
+async function refreshCard(){if(cardBusy)return;cardBusy=true;try{const cv=await drawCard();const img=$('#cardImg');img.hidden=true;if(cv){if(!cv.isConnected){cv.id='cardCv';cv.className='cardcv';cv.setAttribute('role','img');cv.setAttribute('aria-label','การ์ดเวลา CP');img.after(cv);}cv.hidden=false;}else if(CARD_CV)CARD_CV.hidden=true;}catch(e){console.warn('card',e);}finally{cardBusy=false;}
   document.querySelectorAll('#segCard button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===cardTheme));}
 function scheduleCard(){clearTimeout(cardTimer);cardTimer=setTimeout(refreshCard,350);}
 const directDl={save:async({filename,data})=>{const blob=data instanceof Blob?data:new Blob([data]);const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);return{status:'saved'};}};
