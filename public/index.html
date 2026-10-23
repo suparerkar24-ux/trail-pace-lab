@@ -447,7 +447,9 @@ select:focus,input:focus{border-color:var(--moss)}
 .bigtime #tgBigTxt{font:700 64px/1 var(--f-display)}
 .tgstats b{font:700 28px/1 var(--f-display)}
 .countdown{background:var(--surface);color:var(--ink);border-radius:16px}
-.countdown .cn{font:700 clamp(56px,9vw,80px)/1 var(--f-display);color:var(--moss)}
+.countdown{--heat:var(--moss);box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--heat) 55%,transparent),0 0 26px color-mix(in srgb,var(--heat) 28%,transparent)}
+.countdown .cn{font:700 clamp(56px,9vw,80px)/1 var(--f-display);color:var(--heat);transition:color .3s}
+.countdown.today .cn{color:var(--heat)}
 .countdown .ck,.countdown .cd{font-family:var(--f-body);opacity:1;color:var(--muted);letter-spacing:0;text-transform:none}
 .readout{background:var(--sunk);border-radius:12px}
 .readout b{font:700 30px/1 var(--f-display);color:var(--moss)}
@@ -879,6 +881,10 @@ const parseDay=s=>{if(!s||!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;const[y,m,d
 const today0=()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate());};
 const daysTo=s=>{const d=parseDay(s);return d?Math.round((d-today0())/86400000):null;};
 const thDate=(d,opt)=>d.toLocaleDateString('th-TH',opt||{day:'numeric',month:'short',year:'2-digit'});
+// countdown colour: cool far away → hot on race day
+const HEAT_STOPS=[[0,[255,59,92]],[3,[255,90,60]],[7,[255,122,61]],[14,[255,201,60]],[30,[142,240,138]],[60,[45,212,207]],[120,[62,142,222]]];
+function heatCol(n){if(n==null||n<0)return'var(--muted)';const S=HEAT_STOPS;if(n>=S[S.length-1][0])return`rgb(${S[S.length-1][1].join(',')})`;
+  for(let i=0;i<S.length-1;i++){const[a,ca]=S[i],[b,cb]=S[i+1];if(n>=a&&n<=b){const t=(n-a)/(b-a);return`rgb(${ca.map((v,k)=>Math.round(v+(cb[k]-v)*t)).join(',')})`;}}return`rgb(${S[0][1].join(',')})`;}
 const daysTxt=n=>n==null?'':n>0?`อีก ${n} วัน`:n===0?'วันนี้':'จบแล้ว';
 const hm2=min=>{const h=Math.floor(min/60),m=Math.round(min%60);return h?`${h} ชม. ${m?m+' นาที':''}`.trim():`${m} นาที`;};
 
@@ -1709,7 +1715,7 @@ function renderStrip(){
   const el=$('#planStrip');if(!el)return;const rank=p=>{const n=daysTo(p.raceDate);return n==null?1e6:n<0?2e6-n:n;};
   const list=plans.slice().sort((a,b)=>rank(a)-rank(b)||String(b.savedAt||'').localeCompare(String(a.savedAt||'')));
   let h=list.map(p=>{const s=p.summary||{};const n=daysTo(p.raceDate);
-    return`<button class="pcard${p.id===currentPlanId?' cur':''}" type="button" data-sopen="${esc(p.id)}"><b>${esc(p.name||'ไม่มีชื่อ')}</b><small>${s.L?km1(s.L)+' กม. · +'+fmtInt(s.gain)+' ม.':''}</small>${n!=null?`<span class="pd${n<0?' past':''}">${n>0?'อีก '+n+' วัน':n===0?'วันนี้':'จบแล้ว'}</span>`:`<small>${s.total?'จบ '+durStr(Math.round(s.total))+' ชม.':''}</small>`}</button>`;}).join('');
+    return`<button class="pcard${p.id===currentPlanId?' cur':''}" type="button" data-sopen="${esc(p.id)}"><b>${esc(p.name||'ไม่มีชื่อ')}</b><small>${s.L?km1(s.L)+' กม. · +'+fmtInt(s.gain)+' ม.':''}</small>${n!=null?`<span class="pd${n<0?' past':''}" style="color:${heatCol(n)}">${n>0?'อีก '+n+' วัน':n===0?'วันนี้':'จบแล้ว'}</span>`:`<small>${s.total?'จบ '+durStr(Math.round(s.total))+' ชม.':''}</small>`}</button>`;}).join('');
   if(!currentPlanId&&!route.sample)h=`<div class="pcard cur" style="cursor:default"><b>${esc($('#planName').value.trim()||'แผนใหม่')}</b><small>${km1(route.L)} กม. · +${fmtInt(route.gain)} ม.</small><small>ยังไม่ได้บันทึก</small></div>`+h;
   h+=`<button class="pcard new" type="button" data-snew="1"><b>+ แผนใหม่</b><small style="color:var(--muted)">อัปโหลด GPX สนามใหม่</small></button>`;
   $('.stripwrap').hidden=!plans.length&&!!route.sample&&!currentPlanId;
@@ -1724,6 +1730,7 @@ function renderCountdown(){const dc=$('#raceDateClr');if(dc)dc.hidden=!raceDate;
   const up=cands.map(c=>({...c,n:daysTo(c.date)})).filter(c=>c.n!=null&&c.n>=0).sort((a,b)=>a.n-b.n);
   if(!up.length){el.hidden=true;cdTarget=null;return;}const c=up[0];cdTarget=c.id;
   el.classList.toggle('today',c.n===0);
+  el.style.setProperty('--heat',heatCol(c.n));
   el.innerHTML=`<span class="ck">${c.n===0?'วันแข่ง':'นับถอยหลังงานถัดไป'}</span><span class="cn">${c.n===0?'วันนี้':c.n}${c.n>0?'<small>วัน</small>':''}</span><span class="cr">${esc(c.name||'')}</span><span class="cd">${thDate(parseDay(c.date),{weekday:'short',day:'numeric',month:'long',year:'numeric'})}${up.length>1?` · อีก ${up.length-1} งานถัดไป`:''}</span>`;
   el.setAttribute('aria-label',`${c.name} ${daysTxt(c.n)} เปิดแผนนี้`);el.hidden=false;
 }
@@ -1788,7 +1795,7 @@ function renderBar(){if(!currentPlanId)renderStripLite();
   const p=open?plans.find(x=>x.id===currentPlanId):null;const nm=$('#planName').value.trim();
   $('#sbName').textContent=open?(nm||(p&&p.name)||'แผนนี้'):'แผนใหม่';$('#planBtnName').textContent=open?(nm||(p&&p.name)||'แผนนี้'):(plans.length?`แผนใหม่ · มี ${plans.length} แผน`:'แผนใหม่');
   let info='';if(M){const t=Math.round(elapsed(route.L));info=`จบ ${Math.floor(t/60)}:${pad2(t%60)} ชม.`;}
-  const n=daysTo(raceDate);if(n!=null&&n>=0)info+=`${info?' · ':''}<em>${n?'อีก '+n+' วัน':'วันนี้'}</em>`;
+  const n=daysTo(raceDate);if(n!=null&&n>=0)info+=`${info?' · ':''}<em style="color:${heatCol(n)}">${n?'อีก '+n+' วัน':'วันนี้'}</em>`;
   if(open&&dirty&&!saving)info+=`${info?' · ':''}<span class="dirty">มีการแก้ไข</span>`;
   $('#sbInfo').innerHTML=info;$('#sbInput').hidden=open;
   const sv=$('#sbSave');sv.disabled=saving;
@@ -1834,7 +1841,7 @@ function renderPlans(){
   const rank=p=>{const n=daysTo(p.raceDate);return n==null?1e6:n<0?2e6-n:n;};
   const list=plans.slice().sort((a,b)=>rank(a)-rank(b));
   ul.innerHTML=list.map(p=>{const s=p.summary||{};const n=daysTo(p.raceDate);const rd=parseDay(p.raceDate);
-    const when=rd?`<span class="days${n<0?' past':''}">${daysTxt(n)}</span> · ${thDate(rd)}`:(p.savedAt?'บันทึก '+new Date(p.savedAt).toLocaleDateString('th-TH',{day:'numeric',month:'short'}):'');
+    const when=rd?`<span class="days${n<0?' past':''}" style="color:${heatCol(n)}">${daysTxt(n)}</span> · ${thDate(rd)}`:(p.savedAt?'บันทึก '+new Date(p.savedAt).toLocaleDateString('th-TH',{day:'numeric',month:'short'}):'');
     return`<li class="${p.id===currentPlanId?'cur':''}" data-id="${esc(p.id)}"><button class="open" type="button" data-open="${esc(p.id)}"><b>${esc(p.name||'ไม่มีชื่อ')}</b><small>${s.L?km1(s.L)+' กม. · +'+fmtInt(s.gain)+' ม.':''}${s.total?' · '+hms(s.total,false):''}</small><small>${when}</small></button>
       <button class="hist" type="button" data-hist="${esc(p.id)}" aria-expanded="${histOpen===p.id}" aria-label="ประวัติการบันทึกของ ${esc(p.name||'')}" title="ประวัติ / ย้อนกลับ">⟲</button><button class="del" type="button" data-pdel="${esc(p.id)}" aria-label="ลบแผน ${esc(p.name||'')}">×</button></li>`;}).join('');
   if(histOpen&&plans.some(p=>p.id===histOpen))renderHist(histOpen);
