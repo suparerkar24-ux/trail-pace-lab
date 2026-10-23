@@ -220,7 +220,7 @@ body.mapfs{overflow:hidden}
 .maplinks{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;margin:-6px 0 12px}
 .maplinks a{color:var(--accent)}
 .cardwrap{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
-#cardImg{width:min(100%,360px);height:auto;aspect-ratio:9/16;border-radius:14px;border:1px solid var(--line);background:var(--sunk);display:block}
+#cardImg{width:min(100%,360px);height:auto;border-radius:14px;border:1px solid var(--line);background:var(--sunk);display:block}
 .cardacts{display:grid;gap:8px;min-width:0;flex:1 1 200px;align-content:start}
 .calres{background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13.5px;display:grid;gap:4px}
 .calres b{font-family:var(--f-mono);font-weight:600}
@@ -1601,7 +1601,7 @@ const CARD={light:{bg:'#F4F6F3',panel:'#FFFFFF',ink:'#17221B',muted:'#5B6A60',li
 const gIdx=g=>g<-0.10?0:g<-0.03?1:g<=0.03?2:g<=0.10?3:g<=0.20?4:5;
 function fitText(ctx,t,maxW){if(ctx.measureText(t).width<=maxW)return t;while(t.length>1&&ctx.measureText(t+'…').width>maxW)t=t.slice(0,-1);return t+'…';}
 async function drawCard(){
-  if(!M)return null;const C=CARD[cardTheme];const W=1080,H=1920,P=64;
+  if(!M)return null;const C=CARD[cardTheme];const W=1080,P=64,HEAD=806,FOOT=110,RMIN=150,nRows=sortedAids().length+2;const H=Math.max(1920,Math.ceil(HEAD+nRows*RMIN+FOOT));
   try{await Promise.all(['700 40px "Barlow Condensed"','600 40px "Barlow Condensed"','500 30px "Noto Sans Thai"','600 30px "Noto Sans Thai"','700 30px "Noto Sans Thai"'].map(f=>document.fonts.load(f,'กขAa0')));}catch(e){}
   const cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');{const of=x.fillText.bind(x),om=x.measureText.bind(x);x.fillText=(s,a,b,c)=>c===undefined?of(tr(s),a,b):of(tr(s),a,b,c);x.measureText=s=>om(tr(s));}
   const DSP='"Barlow Condensed","Noto Sans Thai",sans-serif',BODY='"Noto Sans Thai",sans-serif',MONO='"Barlow Condensed","Noto Sans Thai",sans-serif';
@@ -1635,7 +1635,7 @@ async function drawCard(){
   const stop=+$('#stop').value||0;const rows=[{n:'S',name:'ปล่อยตัว',m:0,el:0,cot:NaN}];
   sa.forEach((a,j)=>rows.push({n:String(j+1),name:a.name,m:a.m,el:tAt(a.m)+j*stop,cot:cm[a.i],prev:j?sa[j-1].m:0}));
   rows.push({n:'F',name:'เส้นชัย',m:L,el:total,cot:cm.F,prev:sa.length?sa[sa.length-1].m:0});
-  const foot=110,avail=H-y-foot,rh=Math.max(84,Math.min(190,avail/rows.length)),big=rh>=130,sc=Math.min(1,rh/150);
+  const foot=FOOT,avail=H-y-foot,rh=Math.max(RMIN,Math.min(190,avail/rows.length)),big=rh>=130,sc=Math.min(1,rh/150);
   const cx={no:P+28,name:P+78,km:W-P-470,el:W-P-300,clk:W-P};
   x.fillStyle=C.muted;x.font=`600 28px ${BODY}`;x.fillText('จุด',cx.name,y-14);x.textAlign='right';x.fillText('กม.',cx.km,y-14);x.fillText('ถึง (ชม.)',cx.el,y-14);x.fillText('เวลานาฬิกา',cx.clk,y-14);x.textAlign='left';
   rows.forEach((r,i)=>{const ry=y+i*rh;x.strokeStyle=C.line;x.lineWidth=2;x.beginPath();x.moveTo(P,ry);x.lineTo(W-P,ry);x.stroke();
@@ -1668,7 +1668,7 @@ async function saveCard(kind){
   const d=await getDownloads();if(!d){st.textContent='หน้านี้บันทึกไฟล์เองไม่ได้ แตะค้างที่รูปเพื่อบันทึก หรือแคปหน้าจอได้เลย';return;}
   try{let data,name;
     if(kind==='pdf'){if(!window.jspdf){st.textContent='โหลดตัวสร้าง PDF ไม่สำเร็จ ลองบันทึกเป็นรูป PNG แทน';return;}
-      const pdf=new window.jspdf.jsPDF({unit:'pt',format:[540,960],orientation:'portrait',compress:true});pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,540,960);data=pdf.output('blob');name=fileBase()+'.pdf';}
+      const ph=Math.round(540*cv.height/cv.width);const pdf=new window.jspdf.jsPDF({unit:'pt',format:[540,ph],orientation:'portrait',compress:true});pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,540,ph);data=pdf.output('blob');name=fileBase()+'.pdf';}
     else{data=await new Promise(r=>cv.toBlob(r,'image/png'));name=fileBase()+'.png';}
     await d.save({filename:name,data});st.textContent=`บันทึก ${name} แล้ว`;
   }catch(e){st.textContent=e&&e.code==='declined'?'ยกเลิกการบันทึก':e&&e.code==='rate_limited'?'มีหน้าต่างบันทึกเปิดอยู่ ลองอีกครั้ง':'บันทึกไม่สำเร็จ แตะค้างที่รูปเพื่อบันทึกแทน';}
