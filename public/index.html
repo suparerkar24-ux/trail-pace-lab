@@ -377,6 +377,13 @@ details[open].splitbox>summary h2::after{content:" −"}
 #chart .wx.sun circle{fill:#FFC93C}#chart .wx.sun line{stroke:#FFC93C;stroke-width:1.6;stroke-linecap:round}
 #chart .wx.moon{fill:#C9D4FF}#chart .wx.cloud{fill:#B8BEC8}#chart .wx.drop{fill:#4FB3FF}
 #chart text.wxt{fill:var(--ink);font:600 12px var(--f-display)}
+.wkpick{display:grid;gap:8px;font-size:13px;color:var(--muted);flex:1 1 100%}
+.wkrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.wkbtn{width:40px;height:40px;border-radius:50%;border:0;background:var(--sunk);color:var(--ink);font:600 22px/1 var(--f-display);cursor:pointer}
+.wkbtn:disabled{opacity:.35;cursor:default}
+#wkVal{font:500 14px var(--f-body);color:var(--muted);min-width:120px;text-align:center}
+#wkVal b{font:700 40px/1 var(--f-display);color:var(--ink);margin-right:4px;vertical-align:-4px}
+#wkRange{width:100%;accent-color:var(--moss)}
 .calib{border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
 .cal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:10px}
 .cal div{background:var(--sunk);border-radius:6px;padding:6px 8px;display:grid;gap:0;min-width:0}
@@ -794,8 +801,9 @@ td{font-family:var(--f-display);font-size:15px;border-color:var(--line)}
       <div class="cardhead"><h2>โปรแกรมซ้อมสำหรับสนามนี้</h2></div>
       <p class="trainsum" id="trainSum"></p>
       <div class="daypick">
-        <div>เตรียมตัวก่อนแข่ง (สัปดาห์)
-          <div class="seg" id="segWeeks" role="group" aria-label="จำนวนสัปดาห์"><button type="button" data-v="8">8</button><button type="button" data-v="12">12</button><button type="button" data-v="16">16</button><button type="button" data-v="20">20</button><button type="button" data-v="24">24</button></div>
+        <div class="wkpick">เตรียมตัวก่อนแข่ง
+          <div class="wkrow"><button class="wkbtn" type="button" id="wkMinus" aria-label="ลดสัปดาห์">−</button><output id="wkVal" aria-live="polite"><b>12</b> สัปดาห์</output><button class="wkbtn" type="button" id="wkPlus" aria-label="เพิ่มสัปดาห์">+</button><button class="pillbtn" type="button" id="wkAuto" hidden></button></div>
+          <input type="range" id="wkRange" min="1" max="20" step="1" value="12" aria-label="จำนวนสัปดาห์ 1 ถึง 20">
         </div>
         <div>ซ้อมทางเรียบได้ (วัน/สัปดาห์)
           <div class="seg" id="segFlat" role="group" aria-label="วันซ้อมทางเรียบ"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div>
@@ -1270,7 +1278,8 @@ function renderTraining(){
   $('#trainSum').innerHTML=M?`สนาม <b>${esc($('#planName').value.trim()||route.name)}</b> · ${km1(route.L)} กม. +${fmtInt(route.gain)} ม. · เวลาจบ <b>${hm2(Math.round(elapsed(route.L)))}</b> ${M.target?'(เป้า)':'(คาด)'} · เปลี่ยนสนามหรือผลเทสได้ที่แถบด้านข้าง`:'';
   ['#segFlat','#segHill'].forEach((sel,j)=>document.querySelectorAll(sel+' button').forEach(b=>{const v=+b.dataset.v;const other=j?flatDays:hillDays;
     b.setAttribute('aria-pressed',v===(j?hillDays:flatDays));b.disabled=v+other>6;}));
-  document.querySelectorAll('#segWeeks button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===weeks));
+  weeks=Math.max(1,Math.min(20,Math.round(weeks)||12));$('#wkVal b').textContent=weeks;$('#wkRange').value=weeks;$('#wkMinus').disabled=weeks<=1;$('#wkPlus').disabled=weeks>=20;
+  {const n=daysTo(raceDate),ab=$('#wkAuto');const wl=n!=null&&n>=0?Math.max(1,Math.min(20,Math.ceil((n+1)/7))):null;ab.hidden=wl==null||wl===weeks;if(wl!=null){ab.textContent=`ตามวันแข่ง · ${wl} สัปดาห์`;ab.dataset.w=wl;}}
   if(!M||!isFinite(M.vdot)){out.innerHTML='<p class="hint">ใส่ผลเทสก่อน แล้วโปรแกรมจะคำนวณ pace ซ้อมให้</p>';return;}
   const V=M.vdot,P=pct=>pace(1000/velFromVO2(V*pct));
   const E=`${P(0.70)}–${P(0.62)}`,Mp=P(0.80),T=P(0.88),I=P(0.975),R=P(1.05);
@@ -1284,8 +1293,10 @@ function renderTraining(){
   const wkV=Math.round(gain*(Lk<=30?1.5:Lk<=60?1.2:0.8)/100)*100,longV=Math.round(Math.min(gain*0.7,2500)/100)*100;
   // multi-week plan
   const r15=x=>Math.round(x/15)*15;const peakLong=r15(RT<=180?Math.max(60,RT*0.85):RT<=360?210:RT<=720?300:360);
-  const startLong=Math.min(peakLong,Math.max(60,r15(peakLong*0.45)));const ultra=RT>360;
-  const taperN=weeks>=12?2:1,pre=weeks-taperN,baseN=Math.round(pre*0.4),buildN=Math.round(pre*0.35);
+  const startLong=Math.min(peakLong,Math.max(60,r15(peakLong*(weeks>=8?0.45:weeks>=4?0.65:0.85))));const ultra=RT>360;
+  // flexible 1–20 weeks: short plans skip the base phase and keep at least one sharpening week
+  const taperN=weeks>=12?2:1,pre=Math.max(0,weeks-taperN);
+  const peakN=pre<=2?pre:Math.max(1,Math.round(pre*0.25)),baseN=weeks>=8?Math.round(pre*0.4):weeks>=6?1:0,buildN=Math.max(0,pre-peakN-baseN);
   const PH={base:['base','ฐาน'],build:['build','สร้าง'],peak:['peak','พีค'],taper:['taper','ลดซ้อม'],race:['taper','แข่ง']};
   const focus={
     base:`วิ่ง E เป็นหลัก + strides · วันเขาเป็นเดินขึ้นเนินเบาๆ หรือ hill strides 8 × 20 วินาที · เวทขาและ core 2 ครั้ง`,
@@ -1298,7 +1309,7 @@ function renderTraining(){
   const rdDate=parseDay(raceDate);let rd0=null,wkLeft=null;if(rdDate){rd0=new Date(rdDate);rd0.setDate(rd0.getDate()-6);wkLeft=Math.ceil((daysTo(raceDate)+1)/7);}
   for(let k=0;k<weeks;k++){let ph,lg,vt,rec=false;
     if(k<pre){ph=k<baseN?'base':k<baseN+buildN?'build':'peak';const f=pre>1?k/(pre-1):1;lg=startLong+(peakLong-startLong)*f;vt=wkV*(0.4+0.6*f);
-      if(k%4===3&&k<pre-1){lg*=0.7;vt*=0.7;rec=true;}}
+      if(pre>=6&&k%4===3&&k<pre-1){lg*=0.7;vt*=0.7;rec=true;}}
     else if(k<weeks-1){ph='taper';lg=peakLong*0.6;vt=wkV*0.55;}else{ph='race';lg=0;vt=0;}
     const p=PH[ph];const lgTxt=ph==='race'?'วันแข่ง':hm2(r15(lg));
     let dtTxt='',isNow=false;if(rd0){const ws=new Date(rd0);ws.setDate(ws.getDate()-7*(weeks-1-k));const we=new Date(ws);we.setDate(we.getDate()+6);const t=today0();isNow=t>=ws&&t<=we;dtTxt=`${thDate(ws,{day:'numeric',month:'short'})}–${thDate(we,{day:'numeric',month:'short'})}`;}
@@ -1342,7 +1353,7 @@ function renderTraining(){
       <div class="target"><span class="k">ขึ้นสะสมต่อสัปดาห์ช่วงพีค</span><span class="v">${fmtInt(wkV)} ม.</span><p>เริ่มราว ${fmtInt(Math.round(wkV*0.4/50)*50)} ม. แล้วเพิ่มไม่เกิน 10–15%/สัปดาห์</p></div>
       <div class="target"><span class="k">จุดที่สนามนี้เน้น</span><span class="v" style="font-size:16px;font-family:var(--f-display)">${steep&&downHeavy?'ชันทั้งขึ้นและลง':steep?'ทางชัน ต้องเดินเร็ว':downHeavy?'ลงเขายาว':'วิ่งต่อเนื่อง'}</span><p>${steep?`${Math.round(route.steepShare*100)}% ของระยะชันเกิน 15% ฝึก power hike`:'ส่วนใหญ่วิ่งได้ ฝึก T ให้แรงคงที่'}${downHeavy?` · ลงเฉลี่ย ${fmtInt(route.loss/Lk)} ม./กม.`:''}</p></div>
     </div>
-    <p class="subh">แผน ${weeks} สัปดาห์ · ฐาน ${baseN} · สร้าง ${buildN} · พีค ${pre-baseN-buildN} · ลดซ้อมและแข่ง ${taperN}</p>
+    <p class="subh">แผน ${weeks} สัปดาห์${weeks<=3?' · เวลาน้อย เน้นคมและพักให้สด':''}${[baseN?'ฐาน '+baseN:'',buildN?'สร้าง '+buildN:'',pre-baseN-buildN?'พีค '+(pre-baseN-buildN):''].filter(Boolean).map(x=>' · '+x).join('')} · ลดซ้อมและแข่ง ${taperN}</p>
     <div class="tablebox"><table class="plan"><thead><tr><th>สัปดาห์</th>${rd0?'<th>วันที่</th>':''}<th>ช่วง</th><th>วิ่งยาว</th><th>ขึ้นสะสม/สัปดาห์</th><th>เน้น</th></tr></thead><tbody>${planRows}</tbody></table></div>
     ${wkLeft!=null?`<p class="hint" style="margin-top:6px">${wkLeft>0?`เหลือ ${wkLeft} สัปดาห์ถึงวันแข่ง${wkLeft<weeks?` สั้นกว่าแผน ${weeks} สัปดาห์ ให้เริ่มจากแถวที่เขียนว่า “สัปดาห์นี้” หรือเลือกแผนที่สั้นลง`:wkLeft>weeks?` ยาวกว่าแผน ${weeks} สัปดาห์ ช่วงก่อนเริ่มแผนให้วิ่ง Easy สร้างฐานไปก่อน`:''}`:'วันแข่งผ่านไปแล้ว'}</p>`:''}
     <p class="hint" style="margin-top:6px">ถ้าตอนนี้วิ่งยาวได้ไม่ถึง ${hm2(startLong)} ให้เริ่มจากที่ทำได้แล้วเพิ่มทีละ 10–15 นาทีต่อสัปดาห์ ถ้าเวลาเหลือน้อยกว่าแผน ให้เริ่มจากสัปดาห์ที่ตรงกับจำนวนสัปดาห์ที่เหลือ</p>
@@ -1928,7 +1939,9 @@ $('#calibOut').addEventListener('click',e=>{if(e.target.id==='clearCalib'){calib
 $('#useSample').addEventListener('click',()=>{currentPlanId=null;$('#planName').value='';raceDate='';$('#raceDate').value='';actual=null;weather=null;setRoute(sampleRoute());markClean();});
 $('#seg').addEventListener('click',e=>{e.preventDefault();const b=e.target.closest('button');if(!b)return;interval=+b.dataset.v;renderSplits();});
 $('#segFlat').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;flatDays=+b.dataset.v;renderTraining();savePrefs();});
-$('#segWeeks').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;weeks=+b.dataset.v;renderTraining();savePrefs();});
+const setWeeks=w=>{weeks=Math.max(1,Math.min(20,w));renderTraining();savePrefs();};
+$('#wkMinus').addEventListener('click',()=>setWeeks(weeks-1));$('#wkPlus').addEventListener('click',()=>setWeeks(weeks+1));
+$('#wkRange').addEventListener('input',e=>setWeeks(+e.target.value));$('#wkAuto').addEventListener('click',e=>setWeeks(+e.currentTarget.dataset.w));
 $('#segHill').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;hillDays=+b.dataset.v;renderTraining();savePrefs();});
 function addCp(){const sa=sortedAids();const last=sa.length?sa[sa.length-1].m:0;const km=+(((last+route.L)/2)/1000).toFixed(1);
   aids.push({name:`CP${aids.length+1}`,km,cot:''});cpOpen.add(aids.length-1);renderAidEditor();update();const n=$('#an'+(aids.length-1));if(n){n.focus();n.select();n.closest('.aid').scrollIntoView({block:'nearest',behavior:'smooth'});}}
