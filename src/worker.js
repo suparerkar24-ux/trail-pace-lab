@@ -1,8 +1,8 @@
 // Trail Planner: static site + feedback API (Cloudflare D1)
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Key',
 };
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -13,6 +13,22 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/api/feedback') {
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      if (request.method === 'GET') {
+        // admin read: needs X-Admin-Key whose SHA-256 matches config.admin_sha256
+        const key = request.headers.get('X-Admin-Key') || '';
+        const row = await env.DB.prepare("SELECT v FROM config WHERE k = 'admin_sha256'").first();
+        const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key)))]
+          .map((x) => x.toString(16).padStart(2, '0')).join('');
+        if (!row || !key || hash !== row.v) return json({ ok: false, error: 'auth' }, 401);
+        const limit = Math.min(500, Math.max(1, +url.searchParams.get('limit') || 200));
+        const { results } = await env.DB.prepare(
+          'SELECT id, created_at, rating, message, course, km, lang, source FROM feedback ORDER BY id DESC LIMIT ?'
+        ).bind(limit).all();
+        const sum = await env.DB.prepare(
+          'SELECT COUNT(*) AS total, SUM(rating = 1) AS up, SUM(rating = -1) AS down, SUM(message IS NOT NULL AND message <> \'\') AS msgs FROM feedback'
+        ).first();
+        return json({ ok: true, summary: sum, items: results });
+      }
       if (request.method !== 'POST') return json({ ok: false, error: 'method' }, 405);
       let b;
       try { b = await request.json(); } catch { return json({ ok: false, error: 'json' }, 400); }
