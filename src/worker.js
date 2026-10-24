@@ -29,6 +29,29 @@ export default {
       await env.DB.prepare('INSERT INTO shares (id, data) VALUES (?, ?)').bind(id, body).run();
       return json({ ok: true, id });
     }
+    if (url.pathname === '/api/gear') {
+      // gear affiliate links: public read, admin write
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      if (request.method === 'GET') {
+        const { results } = await env.DB.prepare('SELECT id, url FROM gear_links').all();
+        const links = {}; for (const r of results) links[r.id] = r.url;
+        return new Response(JSON.stringify({ ok: true, links }), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=120', ...CORS } });
+      }
+      if (request.method !== 'POST') return json({ ok: false }, 405);
+      const row = await env.DB.prepare("SELECT v FROM config WHERE k = 'admin_sha256'").first();
+      if (!row || (await sha(request.headers.get('X-Admin-Key') || '')) !== row.v) return json({ ok: false, error: 'auth' }, 401);
+      let b; try { b = await request.json(); } catch { return json({ ok: false, error: 'json' }, 400); }
+      const links = b && typeof b.links === 'object' ? b.links : {};
+      const stmts = [];
+      for (const [id, u] of Object.entries(links)) {
+        if (!/^[a-z0-9_-]{2,30}$/.test(id)) continue;
+        const v = typeof u === 'string' ? u.trim() : '';
+        if (!v) stmts.push(env.DB.prepare('DELETE FROM gear_links WHERE id = ?').bind(id));
+        else if (/^https:\/\/[^\s]{4,500}$/.test(v)) stmts.push(env.DB.prepare("INSERT INTO gear_links (id, url, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(id) DO UPDATE SET url = excluded.url, updated_at = excluded.updated_at").bind(id, v));
+      }
+      if (stmts.length) await env.DB.batch(stmts);
+      return json({ ok: true, saved: stmts.length });
+    }
     if (url.pathname === '/api/hit') {
       // anonymous page view: random browser id only, no IP or personal data
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
