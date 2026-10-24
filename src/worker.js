@@ -12,6 +12,23 @@ const clip = (v, n) => (typeof v === 'string' ? v.slice(0, n) : null);
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/share') {
+      // crew share: small ETA snapshot, read by anyone who has the id
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      if (request.method === 'GET') {
+        const id = url.searchParams.get('id') || '';
+        if (!/^[a-z0-9]{8,16}$/.test(id)) return json({ ok: false }, 400);
+        const r = await env.DB.prepare('SELECT data FROM shares WHERE id = ?').bind(id).first();
+        return r ? new Response(r.data, { headers: { 'Content-Type': 'application/json', ...CORS } }) : json({ ok: false }, 404);
+      }
+      if (request.method !== 'POST') return json({ ok: false }, 405);
+      const body = await request.text();
+      if (body.length > 20000) return json({ ok: false, error: 'size' }, 413);
+      try { JSON.parse(body); } catch { return json({ ok: false, error: 'json' }, 400); }
+      const id = [...crypto.getRandomValues(new Uint8Array(8))].map((x) => 'abcdefghjkmnpqrstuvwxyz23456789'[x % 31]).join('') + Date.now().toString(36).slice(-2);
+      await env.DB.prepare('INSERT INTO shares (id, data) VALUES (?, ?)').bind(id, body).run();
+      return json({ ok: true, id });
+    }
     if (url.pathname === '/api/hit') {
       // anonymous page view: random browser id only, no IP or personal data
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
