@@ -6,11 +6,25 @@ const CORS = {
 };
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', ...CORS } });
+const sha = async (t) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map((x) => x.toString(16).padStart(2, '0')).join('');
 const clip = (v, n) => (typeof v === 'string' ? v.slice(0, n) : null);
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/admin/key') {
+      // change admin code: header X-Admin-Key = current code, body {newKey}
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      if (request.method !== 'POST') return json({ ok: false, error: 'method' }, 405);
+      const row = await env.DB.prepare("SELECT v FROM config WHERE k = 'admin_sha256'").first();
+      const cur = await sha(request.headers.get('X-Admin-Key') || '');
+      if (!row || cur !== row.v) return json({ ok: false, error: 'auth' }, 401);
+      let b; try { b = await request.json(); } catch { return json({ ok: false, error: 'json' }, 400); }
+      const nk = typeof b.newKey === 'string' ? b.newKey.trim() : '';
+      if (nk.length < 6 || nk.length > 64) return json({ ok: false, error: 'length' }, 400);
+      await env.DB.prepare("UPDATE config SET v = ? WHERE k = 'admin_sha256'").bind(await sha(nk)).run();
+      return json({ ok: true });
+    }
     if (url.pathname === '/api/feedback') {
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
       if (request.method === 'GET') {
