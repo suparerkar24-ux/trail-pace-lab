@@ -12,6 +12,28 @@ const clip = (v, n) => (typeof v === 'string' ? v.slice(0, n) : null);
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/hit') {
+      // anonymous page view: random browser id only, no IP or personal data
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      if (request.method !== 'POST') return json({ ok: false }, 405);
+      let b = {}; try { b = await request.json(); } catch {}
+      const vid = typeof b.vid === 'string' && /^[a-z0-9]{6,32}$/i.test(b.vid) ? b.vid : null;
+      await env.DB.prepare('INSERT INTO hits (vid, src) VALUES (?, ?)').bind(vid, clip(b.src, 10)).run();
+      return json({ ok: true });
+    }
+    if (url.pathname === '/api/stats') {
+      if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
+      const row = await env.DB.prepare("SELECT v FROM config WHERE k = 'admin_sha256'").first();
+      if (!row || (await sha(request.headers.get('X-Admin-Key') || '')) !== row.v) return json({ ok: false, error: 'auth' }, 401);
+      const hours = Math.min(168, Math.max(6, +url.searchParams.get('hours') || 48));
+      const { results } = await env.DB.prepare(
+        "SELECT strftime('%Y-%m-%d %H', ts, '+7 hours') AS hr, COUNT(*) AS views, COUNT(DISTINCT vid) AS users FROM hits WHERE ts >= datetime('now', ?) GROUP BY hr ORDER BY hr"
+      ).bind(`-${hours} hours`).all();
+      const tot = await env.DB.prepare(
+        "SELECT (SELECT COUNT(DISTINCT vid) FROM hits WHERE date(ts, '+7 hours') = date('now', '+7 hours')) AS today, (SELECT COUNT(DISTINCT vid) FROM hits WHERE ts >= datetime('now', '-7 days')) AS week, (SELECT COUNT(DISTINCT vid) FROM hits) AS all_users, (SELECT COUNT(*) FROM hits) AS all_views"
+      ).first();
+      return json({ ok: true, hours, series: results, totals: tot });
+    }
     if (url.pathname === '/api/admin/key') {
       // change admin code: header X-Admin-Key = current code, body {newKey}
       if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
