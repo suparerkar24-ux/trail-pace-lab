@@ -1,7 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // static site: everything in ./public is served as-is
   "name": "trailpace",
+  "main": "src/worker.js",
   "compatibility_date": "2025-09-01",
-  "assets": { "directory": "./public", "not_found_handling": "single-page-application" }
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "trailpace-feedback", "database_id": "da9fbb50-382e-4125-8c49-40eda5e48c7b" }
+  ]
 }
